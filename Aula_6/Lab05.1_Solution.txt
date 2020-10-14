@@ -1,0 +1,89 @@
+***
+*** Github Activity Archive ***
+*** 
+
+> val githubDF=spark.read.json("spark-labs/data/github.json")
+
+
+***
+*** Query the Data by Actor's Login ***
+*** 
+
+> githubDF.groupBy("actor.login").count.printSchema
+root
+ |-- login: string (nullable = true)
+ |-- count: long (nullable = false)
+
+Query the github data for how many entries exist in the data for each actor's login.
+> githubDF.groupBy("actor.login").count.limit(5).show
++------------+-----+                                                            
+|       login|count|
++------------+-----+
+|john-griffin|    1|
+|   digitized|    3|
+|  dmakarenko|    3|
+| theCodeBear|    1|
+|  georgbrown|    1|
++------------+-----+
+
+Find the 20 logins with the largest number of contributions, and display them.
+> githubDF.groupBy("actor.login").count.orderBy('count.desc).limit(20).show 
++------------------+-----+                                                      
+|             login|count|
++------------------+-----+
+|GoogleCodeExporter| 2073|
+|         stackmutt|  284|
+|      greatfirebot|  192|
+|diversify-exp-user|  146|
+|            kwurst|   92|
+|   direwolf-github|   88|
+|     KenanSulayman|   72|
+|        jack-oquin|   52|
+|        manuelrp07|   45|
+|    mirror-updates|   42|
+|     tryton-mirror|   37|
+|        EstifanosG|   32|
+|           houndci|   30|
+|      jeff1evesque|   29|
+|      LukasReschke|   28|
+|       nwt-patrick|   27|
+|           Somasis|   27|
+|        mikegazdag|   26|
+|       tterrag1098|   23|
+|   EmanueleMinotto|   22|
++------------------+-----+
+
+NOTE: show has a default limit of 20 rows.  If you want to display more, pass a parameter, e.g. show(50)
+
+***
+*** Optional: Use SQL ***
+*** 
+// Create temp table.
+> githubDF.createOrReplaceTempView("githubData")
+
+// Do the query.
+> spark.sql("SELECT actor.login, COUNT(*) AS entryCount FROM githubData GROUP BY actor.login ORDER BY entryCount DESC LIMIT 20").show
++------------------+----------+
+|             login|entryCount|
++------------------+----------+
+|GoogleCodeExporter|      2073|
+|         stackmutt|       284|
+|      greatfirebot|       192|
+|diversify-exp-user|       146|
+|            kwurst|        92|
+|   direwolf-github|        88|
+|     KenanSulayman|        72|
+|        jack-oquin|        52|
+|        manuelrp07|        45|
+|    mirror-updates|        42|
+|     tryton-mirror|        37|
+|        EstifanosG|        32|
+|           houndci|        30|
+|      jeff1evesque|        29|
+|      LukasReschke|        28|
+|       nwt-patrick|        27|
+|           Somasis|        27|
+|        mikegazdag|        26|
+|       tterrag1098|        23|
+|   EmanueleMinotto|        22|
++------------------+----------+

@@ -1,0 +1,160 @@
+***
+*** Music Data File ***
+*** 
+
+val musicDF=spark.read.json("spark-labs/data/music.json")
+musicDF: org.apache.spark.sql.DataFrame = [artist: string, price: double ... 1 more field]
+
+> musicDF.schema
+res159: org.apache.spark.sql.types.StructType = StructType(StructField(artist,StringType,true), StructField(category,StringType,true), StructField(price,DoubleType,true), StructField(title,StringType,true))
+
+> musicDF.show
++---------------+--------+-----+-------------------+
+|         artist|category|price|              title|
++---------------+--------+-----+-------------------+
+|        Madonna|     Pop|10.97|       Ray of Light|
+|    Miley Cyrus|     Pop|12.99|      Wrecking Ball|
+|      Aerosmith|    Rock|14.97|           Big Ones|
+|Dexter Freebish|     Rap|14.99|A Life of Saturdays|
+| Kendrick Lamar|     Rap|17.99|                DNA|
+|      Van Halen|    Rock|11.97|               1984|
+|      Lady Gaga|     Pop|16.99|           The Cure|
++---------------+--------+-----+-------------------+
+
+
+
+***
+*** Simple DataSet Usage ***
+*** 
+
+Define a MusicItem case class suitable for our music.json data.
+> case class MusicItem (title: String, artist: String, category: String, price: Double)
+defined class MusicItem
+
+Using this class, create a typed DataSet from the musicDF dataframe.
+> val musicDS=musicDF.as[MusicItem]
+musicDS: org.apache.spark.sql.Dataset[MusicItem] = [artist: string, category: string ... 2 more fields]
+
+What type is folksDS?
+DataSet of MusicItem, as shown below.
+> musicDS
+res16: org.apache.spark.sql.Dataset[MusicItem] = [artist: string, category: string ... 2 more fields]
+
+Display the data in the dataset.
+> musicDS.show
++---------------+--------+-----+-------------------+
+|         artist|category|price|              title|
++---------------+--------+-----+-------------------+
+|        Madonna|     Pop|10.97|       Ray of Light|
+|    Miley Cyrus|     Pop|12.99|      Wrecking Ball|
+|      Aerosmith|    Rock|14.97|           Big Ones|
+|Dexter Freebish|     Rap|14.99|A Life of Saturdays|
+| Kendrick Lamar|     Rap|17.99|                DNA|
+|      Van Halen|    Rock|11.97|               1984|
+|      Lady Gaga|     Pop|16.99|           The Cure|
++---------------+--------+-----+-------------------+
+
+
+***
+*** Compare: DataFrame vs. DataSet ***
+*** 
+
+-- Filter on category.
+> musicDF.filter('category === "Pop").show
++-----------+--------+-----+-------------+
+|     artist|category|price|        title|
++-----------+--------+-----+-------------+
+|    Madonna|     Pop|10.97| Ray of Light|
+|Miley Cyrus|     Pop|12.99|Wrecking Ball|
+|  Lady Gaga|     Pop|16.99|     The Cure|
++-----------+--------+-----+-------------+
+
+> musicDS.filter(mi => mi.category == "Pop").show
++-----------+--------+-----+-------------+
+|     artist|category|price|        title|
++-----------+--------+-----+-------------+
+|    Madonna|     Pop|10.97| Ray of Light|
+|Miley Cyrus|     Pop|12.99|Wrecking Ball|
+|  Lady Gaga|     Pop|16.99|     The Cure|
++-----------+--------+-----+-------------+
+
+-- Using musicDF and untyped transformations, get the lowest price item in a category.
+
+> musicDF.groupBy('category).min("price").show
++--------+----------+
+|category|min(price)|
++--------+----------+
+|    Rock|     11.97|
+|     Pop|     10.97|
+|     Rap|     14.99|
++--------+----------+
+
+> musicDS.groupByKey(mi => mi.category).agg(min('price).as[Double]).show 
++-----+----------+
+|value|min(price)|
++-----+----------+
+| Rock|     11.97|
+|  Pop|     10.97|
+|  Rap|     14.99|
++-----+----------+
+
+
+- Transform data so that the price is reduced 10%. (You can do this by multiplying it by 0.9).
+
+// DataFrame
+> musicDF.select('title, 'artist, 'category, 'price*lit(0.9)).show
++-------------------+---------------+--------+------------------+
+|              title|         artist|category|     (price * 0.9)|
++-------------------+---------------+--------+------------------+
+|       Ray of Light|        Madonna|     Pop| 9.873000000000001|
+|      Wrecking Ball|    Miley Cyrus|     Pop|            11.691|
+|           Big Ones|      Aerosmith|    Rock|            13.473|
+|A Life of Saturdays|Dexter Freebish|     Rap|            13.491|
+|                DNA| Kendrick Lamar|     Rap|            16.191|
+|               1984|      Van Halen|    Rock|10.773000000000001|
+|           The Cure|      Lady Gaga|     Pop|15.290999999999999|
++-------------------+---------------+--------+------------------+
+
+// DataSet
+> musicDS.map (mi => MusicItem(mi.title, mi.artist, mi.category, mi.price*0.9)).show
++-------------------+---------------+--------+------------------+
+|              title|         artist|category|             price|
++-------------------+---------------+--------+------------------+
+|       Ray of Light|        Madonna|     Pop| 9.873000000000001|
+|      Wrecking Ball|    Miley Cyrus|     Pop|            11.691|
+|           Big Ones|      Aerosmith|    Rock|            13.473|
+|A Life of Saturdays|Dexter Freebish|     Rap|            13.491|
+|                DNA| Kendrick Lamar|     Rap|            16.191|
+|               1984|      Van Halen|    Rock|10.773000000000001|
+|           The Cure|      Lady Gaga|     Pop|15.290999999999999|
++-------------------+---------------+--------+------------------+
+
+-- Make a mistake - watch how errors are caught.
+
+// DataFrame - error not caught - get erroneous results.
+a> musicDF.select('title, 'artist, 'category, 'price*lit("A")).show
++-------------------+---------------+--------+-----------+
+|              title|         artist|category|(price * A)|
++-------------------+---------------+--------+-----------+
+|       Ray of Light|        Madonna|     Pop|       null|
+|      Wrecking Ball|    Miley Cyrus|     Pop|       null|
+|           Big Ones|      Aerosmith|    Rock|       null|
+|A Life of Saturdays|Dexter Freebish|     Rap|       null|
+|                DNA| Kendrick Lamar|     Rap|       null|
+|               1984|      Van Halen|    Rock|       null|
+|           The Cure|      Lady Gaga|     Pop|       null|
++-------------------+---------------+--------+-----------+
+
+// DataSet - error caught at parsing time.
+> musicDS.map (mi => MusicItem(mi.title, mi.artist, mi.category, mi.price*"A")).show
+<console>:30: error: overloaded method value * with alternatives:
+  (x: Double)Double <and>
+  (x: Float)Double <and>
+  (x: Long)Double <and>
+  (x: Int)Double <and>
+  (x: Char)Double <and>
+  (x: Short)Double <and>
+  (x: Byte)Double
+ cannot be applied to (String)
+       musicDS.map (mi => MusicItem(mi.title, mi.artist, mi.category, mi.price*"A")).show
+                                                                              ^

@@ -1,0 +1,115 @@
+***
+*** Wikimedia PageView Data File ***
+*** 
+
+Read the data file, and show some lines
+> val viewsDF=spark.read.text("spark-labs/data/wiki-pageviews.txt")
+> viewsDF.limit(5).show
++------------------+
+|             value|
++------------------+
+|  aa Main_Page 3 0|
+|  aa Main_page 1 0|
+|  aa User:Savh 1 0|
+|  aa Wikipedia 1 0|
+|aa.b User:Savh 1 0|
++------------------+
+
+***
+*** Split the Lines ***
+*** 
+
+Split on whitespace, show some lines, show the schema
+> val splitViewsDF = viewsDF.select(split('value, "\\s+").as("splitLine"))
+> splitViewsDF.limit(5).show(false)
++-----------------------+
+|splitLine              |
++-----------------------+
+|[aa, Main_Page, 3, 0]  |
+|[aa, Main_page, 1, 0]  |
+|[aa, User:Savh, 1, 0]  |
+|[aa, Wikipedia, 1, 0]  |
+|[aa.b, User:Savh, 1, 0]|
++-----------------------+
+> splitViewsDF.printSchema
+root
+ |-- splitLine: array (nullable = true)
+ |    |-- element: string (containsNull = true)
+
+***
+*** Create a Better Schema ***
+*** 
+
+Create a dataframe with a better schema, view the schema, and view some data.
+> val viewsWithSchemaDF = splitViewsDF.select('splitLine(0).as("domain"), 'splitLine(1).as("pageName"), 'splitLine(2).cast("integer").as("viewCount"), 'splitLine(3).cast("long").as("size"))
+> viewsWithSchemaDF.printSchema
+root
+ |-- domain: string (nullable = true)
+ |-- pageName: string (nullable = true)
+ |-- viewCount: integer (nullable = true)
+ |-- size: long (nullable = true)
+> viewsWithSchemaDF.limit(5).show
++------+---------+---------+----+
+|domain| pageName|viewCount|size|
++------+---------+---------+----+
+|    aa|Main_Page|        3|   0|
+|    aa|Main_page|        1|   0|
+|    aa|User:Savh|        1|   0|
+|    aa|Wikipedia|        1|   0|
+|  aa.b|User:Savh|        1|   0|
++------+---------+---------+----+
+
+***
+*** Try Some Queries ***
+*** 
+
+Find rows where the viewCount > 500, and display 5 of them
+> viewsWithSchemaDF.filter('viewCount>500).limit(5).show
++------+---------------+---------+----+
+|domain|       pageName|viewCount|size|
++------+---------------+---------+----+
+|    ar|              -|      686|   0|
+|    ar|الصفحة_الرئيسية|      720|   0|
+|    ar|        خاص:بحث|      850|   0|
+|  ar.m|              -|     2086|   0|
+|  ar.m|الصفحة_الرئيسية|     5024|   0|
++------+---------------+---------+----+
+
+Same query as above with domain of "en" - note the triple = for equality
+> viewsWithSchemaDF.filter('domain==="en").filter('viewCount>500).limit(5).show
++------+-------------------+---------+----+                                     
+|domain|           pageName|viewCount|size|
++------+-------------------+---------+----+
+|    en|                  -|     6492|   0|
+|    en|       2017_in_film|     1004|   0|
+|    en|            404.php|    34859|   0|
+|    en|89th_Academy_Awards|     3276|   0|
+|    en|              AMGTV|     1049|   0|
++------+-------------------+---------+----+
+
+Find the 5 rows with the largest viewCount and a domain of "en"
+> viewsWithSchemaDF.filter('domain==="en").orderBy('viewcount.desc).limit(5).show
++------+--------------+---------+----+                                          
+|domain|      pageName|viewCount|size|
++------+--------------+---------+----+
+|    en|     Main_Page|   248511|   0|
+|    en|Special:Search|    69630|   0|
+|    en|          Rice|    47233|   0|
+|    en|       404.php|    34859|   0|
+|    en|   John_Batman|     6632|   0|
++------+--------------+---------+----+
+
+Optional Tasks
+Find the 5 rows with the largest viewCount and a domain of "en", and where the pageName doesn't contain a colon (":")
+> viewsWithSchemaDF.filter('domain==="en").filter(!'pageName.contains(":")).orderBy('viewcount.desc).limit(5).show
++------+-----------+---------+----+                                             
+|domain|   pageName|viewCount|size|
++------+-----------+---------+----+
+|    en|  Main_Page|   248511|   0|
+|    en|       Rice|    47233|   0|
+|    en|    404.php|    34859|   0|
+|    en|John_Batman|     6632|   0|
+|    en|          -|     6492|   0|
++------+-----------+---------+----+
+
+

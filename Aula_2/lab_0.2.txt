@@ -1,0 +1,13 @@
+val m = 10
+var i = 10
+val ft = 10
+i = i + 1
+m = m + 1
+
+val n = 1.+(2)
+
+val r = 1 to 100
+for( cur <- r) if (cur % 2 == 0) println(cur)
+
+
+

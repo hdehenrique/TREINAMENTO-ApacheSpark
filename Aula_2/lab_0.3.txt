@@ -1,0 +1,19 @@
+val r = 1 to 10
+val f:(Int) = Boolean => _%2==0
+
+r.head
+r.tail
+
+val even = r.filter(f)
+val pow = even.map(x => x*x)
+val sum = pow.reduce(_+_)
+println(sum)
+
+
+val oneTwo = List(1, 2)
+val threeFour = List(3, 4)
+val oneTwoThreeFour = oneTwo ::: threeFour
+println(oneTwo +  " e " + threeFour + " nao mudaram")
+println("A lista " + oneTwoThreeFour + " eh uma nova lista")
+
+

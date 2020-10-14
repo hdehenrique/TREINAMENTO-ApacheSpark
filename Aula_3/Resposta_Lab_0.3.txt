@@ -1,0 +1,71 @@
+
+scala> val u1 = sc.parallelize(List("m1", "m2", "m3"))
+u1: org.apache.spark.rdd.RDD[String] = ParallelCollectionRDD[0] at parallelize at <console>:24
+
+scala> val u2 = sc.parallelize(List("m2", "m3", "m4", "m5"))
+u2: org.apache.spark.rdd.RDD[String] = ParallelCollectionRDD[1] at parallelize at <console>:24
+
+
+*** comum ao dois
+scala> val common = u1.intersection(u2)
+common: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[7] at intersection at <console>:28
+
+scala> common.collect
+res0: Array[String] = Array(m2, m3) 
+
+**** meetups atendidos por um ou por outro
+scala> val either = u1.union(u2).distinct()
+either: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[11] at distinct at <console>:28
+
+scala> either.collect
+res1: Array[String] = Array(m1, m2, m3, m4, m5)
+
+*** Meetups que apenas um atende
+
+-- Meetup que SOMENTE um atende (u1)
+scala> val onlyU1 = u1.subtract(u1.intersection(u2))
+onlyU1: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[21] at subtract at <console>:28
+
+scala> onlyU1.collect
+res2: Array[String] = Array(m1)
+
+
+-- Meetup que SOMENTE um atende (u2)
+scala> val onlyU2 = u2.subtract(u1.intersection(u2))
+onlyU2: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[31] at subtract at <console>:28
+
+scala> onlyU2.collect
+res3: Array[String] = Array(m5, m4)
+
+
+
+-- Create u3
+scala> val u3 = sc.parallelize(List("m1", "m3", "m5"))
+u3: org.apache.spark.rdd.RDD[String] = ParallelCollectionRDD[32] at parallelize at <console>:24
+
+-- Recomendacoes para u1:
+scala> val forU1 = u2.intersection(u3).subtract(u1)
+forU1: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[42] at subtract at <console>:30
+
+scala> forU1.collect
+res4: Array[String] = Array(m5)
+
+-- Recomendacoes para u2:
+scala> val forU2 = u1.intersection(u3).subtract(u2)
+forU2: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[52] at subtract at <console>:30
+
+scala> forU2.collect
+res5: Array[String] = Array(m1)
+
+-- Recomendacoes para u3:
+scala> val forU3 = u1.intersection(u2).subtract(u3)
+forU3: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[62] at subtract at <console>:30
+
+scala> forU3.collect
+res6: Array[String] = Array(m2)
+
+
+
+
+
+

@@ -1,0 +1,165 @@
+
+  415  sbt
+  416  clear
+  417  pwd
+  418  echo $SPARK_HOME
+  419  cd /opt/spark
+  420  cd sbin
+  421  pwd
+  422  ls
+  423  cd ..
+  424  cd conf
+  425  ls
+  426  ls -lhatr
+  427  pwd
+  428  cp spark-defaults.conf.template spark-defaults.conf
+  429  ls
+  430  clear
+  431  ls -lhatr
+  432  pwd
+  433  cls
+  434  clear
+  435  ls -lhatr
+  436  vi spark-defaults.conf
+  437  pwd
+  438  clear
+  439  ls
+  440  ls -lhatr
+  441  clear
+  442  nano spark-defaults.conf
+  443  cat spark-defaults.conf
+  444  clear
+  445  ls
+  446  cd ..
+  447  cd bin
+  448  pwd
+  449  ls
+  450  cd ..
+  451  cd sbin
+  452  pwd
+  453  clear
+  454  pwd
+  455  ls -lhatr
+  456  clear
+  457  ./start-history-server.sh 
+  458  cat /opt/spark/logs/spark-ec2-user-org.apache.spark.deploy.history.HistoryServer-1-ip-172-31-45-99.us-east-2.compute.internal.out
+  459  clear
+  460  mkdir /home/ec2-user/logdir
+  461  ps aux | grep spark
+  462  ps aux | grep history
+  463  clear
+  464  pwd
+  465  clear
+  466  ./start-history-server.sh 
+  467  clear
+  468  cat /opt/spark/logs/spark-ec2-user-org.apache.spark.deploy.history.HistoryServer-1-ip-172-31-45-99.us-east-2.compute.internal.out
+  469  clear
+  470  ls
+  471  cd ..
+  472  pwd
+  473  cd sbin
+  474  ls
+  475  clear
+  476  ls
+  477  pwd
+  478  ./start-master.sh 
+  479  cat  /opt/spark/logs/spark-ec2-user-org.apache.spark.deploy.master.Master-1-ip-172-31-45-99.us-east-2.compute.internal.out
+  480  clear
+  481  ls
+  482  ./start-slave.sh --help
+  483  clear
+  484  cd ..
+  485  cd conf
+  486  ls
+  487  clear
+  488  pwd
+  489  cp slaves.template slaves
+  490  ls -lhatr
+  491  nano slaves
+       ./start-slave.sh -c 1 -m 2G spark://18.216.31.146:7077
+  514  cat /opt/spark/logs/spark-ec2-user-org.apache.spark.deploy.worker.Worker-1-ip-172-31-45-99.us-east-2.compute.internal.out
+  515  clear
+  516  ps aux | grep java
+  517  cd ../conf
+  518  cat spark-defaults.conf
+  519  clear
+  520  cd /home/ec2-user
+  521  ls
+  522  cd lab
+  523  ls
+  524  cler
+  525  ls
+  526  clear
+  527  pwd
+  528  cd Lab07.1/
+  529  pwd
+  530  ls
+  531  pwd
+  532  cd src
+  533  ls
+  534  cd main
+  535  ls
+  536  cd scala
+  537  ls
+  538  clear
+  539  cd com
+  540  ls
+  541  cd mycompany/
+  542  ls
+  543  clear
+  544  pwd
+  545  nano ProcessFiles.scala
+  546  ls
+  547  cd ..
+  548  ls
+  549  clear
+  550  pwd
+  551  ls
+  552  build compile
+  553  cler
+  554  clear
+  555  sbt compile
+  556  ls
+  557  cat build.sbt 
+  558  clear
+  559  sbt package
+  560  ls
+  561  cd target
+  562  cd scala-2.11/
+  563  ls
+  564  jar -tvf myapp_2.11-1.0.jar
+  565  pwd
+  566  clear
+  567  ls
+  568  c d..
+  569  cd .. 
+  570  cd ..
+  571  ls
+  572  clear
+  573  ls
+  574  cd target
+  575  cd scala-2.11/
+  576  ls
+  577  cd ..
+  578  ls
+  579  cd ..
+  580  ls
+  581  cd twinkle
+  582  ls
+  583  clear
+  584  ls
+  585  pwd
+  586  cd ..
+  587  cd  Lab07.1/
+  588  ls
+  589  spark-submit --class com.mycompany.ProcessFiles --master spark://18.216.31.146:7077 --executor-memory 1g --driver-class-path logging/ target/scala-2.11/myapp_2.11-1.0.jar /home/ec2-user/lab/twinkle/500M.data 
+  590  cd logging
+  591  ls
+  592  clear
+  593  ls
+  594  cat log4j.properties 
+  595  cd ..
+  596  ls
+  597  clear
+  598  ls
+  599  history > comandos.txt

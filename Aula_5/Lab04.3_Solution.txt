@@ -1,0 +1,119 @@
+***
+*** Simple Transformations ***
+*** 
+
+Read people.json if you haven't already
+> val folksDF=spark.read.json("spark-labs/data/people.json")
+
+Display the data.
+> folksDF.show
+
+Filter on age and display the data
+Filter on gender and display the data
+> folksDF.filter('age>25).show // With age greater than 25
++---+------+----+
+|age|gender|name|
++---+------+----+
+| 35|     M|John|
+| 40|     F|Jane|
+| 52|     F| Sue|
++---+------+----+
+ 
+> folksDF.filter('age>25 && 'age<50).show  // With age greater than 25 and less than 50
++---+------+----+
+|age|gender|name|
++---+------+----+
+| 35|     M|John|
+| 40|     F|Jane|
++---+------+----+
+
+> folksDF.filter('gender === "F").show
++---+------+----+
+|age|gender|name|
++---+------+----+
+| 40|     F|Jane|
+| 52|     F| Sue|
++---+------+----+
+
+Count how many "F" and "M" items there are.
+> folksDF.groupBy('gender).count.show
++------+-----+
+|gender|count|
++------+-----+
+|     F|    2|
+|     M|    2|
++------+-----+
+
+[Optional] Find the oldest person with gender "F"
+> folksDF.createOrReplaceTempView("people") 
+> spark.sql("SELECT name, age FROM people WHERE gender = 'F' and age = (select max(age) FROM people WHERE gender='F')").show
++----+---+
+|name|age|
++----+---+
+| Sue| 52|
++----+---+
+
+***
+*** Working with More Complex Data ***
+***
+
+Look at the githubDF schema and a few rows (limit().show) again.
+> githubDF.limit(5).show
++--------------------+--------------------+----------+--------------------+--------------------+------+--------------------+-----------------+
+|               actor|          created_at|        id|                 org|             payload|public|                repo|             type|
++--------------------+--------------------+----------+--------------------+--------------------+------+--------------------+-----------------+
+|[https://avatars....|2015-03-01T00:00:00Z|2614896652|[https://avatars....|[null,null,null,n...|  true|[23934080,Early-M...|      CreateEvent|
+|[https://avatars....|2015-03-01T00:00:00Z|2614896653|                null|[null,6dda286a3a1...|  true|[31481156,bezerra...|        PushEvent|
+// Remaining data omitted ...
+
+Select the actor column and view it and its schema
+> githubDF.limit(5).select('actor).show(false)
++------------------------------------------------------------------------------------------------------------------------------+
+|actor                                                                                                                         |
++------------------------------------------------------------------------------------------------------------------------------+
+|[https://avatars.githubusercontent.com/u/739622?,,739622,treydock,https://api.github.com/users/treydock]                      |
+|[https://avatars.githubusercontent.com/u/9063348?,,9063348,bezerrathm,https://api.github.com/users/bezerrathm]                |
+|[https://avatars.githubusercontent.com/u/2474382?,,2474382,demianborba,https://api.github.com/users/demianborba]              |
+|[https://avatars.githubusercontent.com/u/9614759?,,9614759,GoogleCodeExporter,https://api.github.com/users/GoogleCodeExporter]|
+|[https://avatars.githubusercontent.com/u/3196287?,,3196287,tedsanders,https://api.github.com/users/tedsanders]                |
++------------------------------------------------------------------------------------------------------------------------------+
+
+> githubDF.select('actor).printSchema
+githubDF.select('actor).printSchema
+root
+ |-- actor: struct (nullable = true)
+ |    |-- avatar_url: string (nullable = true)
+ |    |-- gravatar_id: string (nullable = true)
+ |    |-- id: long (nullable = true)
+ |    |-- login: string (nullable = true)
+ |    |-- url: string (nullable = true)
+
+Select the login value of the actor and display it
+> actorDF.select("actor.login").limit(5).show
++------------------+
+|             login|
++------------------+
+|          treydock|
+|        bezerrathm|
+|       demianborba|
+|GoogleCodeExporter|
+|        tedsanders|
++------------------+
+
+Find out how many unique logins there are in the data.
+> actorDF.select("actor.login").dropDuplicates.count
+
+Retrieve all the unique values for the 'type' column.
+> githubDF.dropDuplicates("type").count
+res117: Long = 14
+
+> githubDF.dropDuplicates("type").show
++--------------------+--------------------+----------+--------------------+--------------------+------+--------------------+--------------------+
+|               actor|          created_at|        id|                 org|             payload|public|                repo|                type|
++--------------------+--------------------+----------+--------------------+--------------------+------+--------------------+--------------------+
+|[https://avatars....|2015-03-01T00:00:00Z|2614896653|                null|[null,6dda286a3a1...|  true|[31481156,bezerra...|           PushEvent|
+|[https://avatars....|2015-03-01T00:00:04Z|2614896732|                null|[null,null,null,n...|  true|[30196332,pando85...|         GollumEvent|
+// Rest of data omitted. 
+
+Get count of CreateEvent rows
+> githubDF.filter('type === "CreateEvent").count()

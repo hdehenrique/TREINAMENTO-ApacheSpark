@@ -1,0 +1,20 @@
+***
+*** Declare a Schema Explicitly ***
+*** 
+
+Declare the schema
+> import org.apache.spark.sql.types._
+> val mySchema = (new StructType).add("name", StringType).add("gender", StringType).add("age", IntegerType)
+
+Read data/people.json again, but this time supply the schema you declared.
+> var folksDF = spark.read.schema(mySchema).json("spark-labs/data/people.json")
+
+
+***
+*** Work with More Complex Data ***
+*** 
+
+Declare a schema for folksAddressDF
+> val addressSchema = (new StructType).add("city", StringType).add("state", StringType).add("street", StringType).add("zip", StringType)
+
+> val schemaWithAddress = (new StructType).add("address", addressSchema).add("name", StringType).add("gender", StringType).add("age", IntegerType)

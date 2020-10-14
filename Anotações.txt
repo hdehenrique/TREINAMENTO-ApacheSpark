@@ -1,0 +1,76 @@
+O que é RDD?
+
+http://dontpad.com/spark
+
+cd /opt/polynote;
+nohup ./polynote.py &
+3.137.153.147
+
+package com.mycompany
+import org.apache.spark.SparkContext
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions._
+
+object ProcessFiles {
+
+    def main(args: Array[String]): Unit = {
+      if (args.length < 1) {
+        println("Precisa especificar o arquivo")
+        System.exit(1)
+      }
+
+      val spark = SparkSession.builder
+        .appName("Process Files")
+        .getOrCreate()
+
+      var file = ""
+      for(file <- args){
+        val fileDF = spark.read.text(file)
+        val count = fileDF.count()
+        println("### %s: count %,d".format(file, count))
+      }
+
+      println("Pressione Enter para sair")
+      val line = Console.readLine()
+    }
+}
+
+
+
+
+
+=====
+
+spark.master   	       	       	 spark://18.216.31.146:7077
+spark.eventLog.enabled           true
+spark.eventLog.dir     	       	 file:///home/ec2-user/logdir
+spark.history.fs.logDirectory  	 file:///home/ec2-user/logdir
+# spark.serializer     	       	   org.apache.spark.serializer.KryoSerializer
+spark.driver.memory    	       	 2g
+# spark.executor.extraJavaOptions  -XX:+PrintGCDetails -Dkey=value -Dnumbers="one two three"
+
+====
+ mkdir /home/ec2-user/logdir
+
+====
+cd /opt/spark/sbin
+[ec2-user@ip-172-31-45-99 sbin]$ ./start-history-server.sh
+starting org.apache.spark.deploy.history.HistoryServer, logging to /opt/spark/logs/spark-ec2-user-org.apache.spark.deploy.history.HistoryServer-1-ip-172-31-45-99.us-east-2.compute.internal.out
+[
+
+
+======
+
+spark-submit \
+--class com.mycompany.ProcessFiles \
+--master spark://3.21.55.198:7077 \
+--executor-memory 1g \
+--driver-class-path logging/ \
+target/scala-2.11/myapp_2.11-1.0.jar /home/ec2-user/lab/twinkle/500M.data
+
+
+
+
+/home/ec2-user/lab/Lab07.1/src/main/scala/com/mycompany
+
+

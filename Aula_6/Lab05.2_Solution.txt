@@ -1,0 +1,92 @@
+***
+*** Lab Preparation ***
+*** 
+
+// Load the file into Spark
+> val viewsDF=spark.read.text("spark-labs/data/wiki-pageviews.txt")
+// Split on whitespace
+> val splitViewsDF = viewsDF.select(split('value, "\\s+").as("splitLine"))
+// Use a better schema
+> val viewsWithSchemaDF = splitViewsDF.select('splitLine(0).as("domain"), 'splitLine(1).as("pageName"), 'splitLine(2).cast("integer").as("viewCount"), 'splitLine(3).cast("long").as("size"))
+
+
+***
+*** Push Down Predicate ***
+*** 
+
+First, write a transformation to order viewsWithSchemaDF by viewCount, and "explain" the transformation
+> viewsWithSchemaDF.orderBy('viewCount).explain
+== Physical Plan ==
+*Sort [viewCount#1305 ASC NULLS FIRST], true, 0
++- Exchange rangepartitioning(viewCount#1305 ASC NULLS FIRST, 200)
+   +- *Project [split(value#1297, \s+)[0] AS domain#1303, split(value#1297, \s+)[1] AS pageName#1304, cast(cast(split(value#1297, \s+)[2] as decimal(20,0)) as int) AS viewCount#1305, cast(cast(split(value#1297, \s+)[3] as decimal(20,0)) as bigint) AS size#1306L]
+      +- *FileScan text [value#1297] ... struct<value:string>
+
+
+Filter after ordering:
+Note how the filter happens very early on - it's been pushed down by Catalyst.
+> viewsWithSchemaDF.orderBy('viewCount).filter('domain.startsWith("en")).explain
+== Physical Plan ==
+*Sort [viewCount#1305 ASC NULLS FIRST], true, 0
++- Exchange rangepartitioning(viewCount#1305 ASC NULLS FIRST, 200)
+   +- *Project [split(value#1297, \s+)[0] AS domain#1303, split(value#1297, \s+)[1] AS pageName#1304, cast(cast(split(value#1297, \s+)[2] as decimal(20,0)) as int) AS viewCount#1305, cast(cast(split(value#1297, \s+)[3] as decimal(20,0)) as bigint) AS size#1306L]
+      +- *Filter StartsWith(split(value#1297, \s+)[0], en)
+         +- *FileScan text [value#1297] ... struct<value:string>
+
+// Filter before ordering - same plan.
+> viewsWithSchemaDF.filter('domain.startsWith("en")).orderBy('viewCount).explain
+== Physical Plan ==
+*Sort [viewCount#1305 ASC NULLS FIRST], true, 0
++- Exchange rangepartitioning(viewCount#1305 ASC NULLS FIRST, 200)
+   +- *Project [split(value#1297, \s+)[0] AS domain#1303, split(value#1297, \s+)[1] AS pageName#1304, cast(cast(split(value#1297, \s+)[2] as decimal(20,0)) as int) AS viewCount#1305, cast(cast(split(value#1297, \s+)[3] as decimal(20,0)) as bigint) AS size#1306L]
+      +- *Filter StartsWith(split(value#1297, \s+)[0], en)
+         +- *FileScan text [value#1297] ... struct<value:string>
+
+Filter after ordering - explain(true)
+> viewsWithSchemaDF.orderBy('viewCount).filter('domain.startsWith("en")).explain(true)
+== Parsed Logical Plan ==
+'Filter StartsWith('domain, en)
++- Sort [viewCount#1305 ASC NULLS FIRST], true
+   +- Project [splitLine#1300[0] AS domain#1303, splitLine#1300[1] AS pageName#1304, cast(cast(splitLine#1300[2] as decimal(20,0)) as int) AS viewCount#1305, cast(cast(splitLine#1300[3] as decimal(20,0)) as bigint) AS size#1306L]
+      +- Project [split(value#1297, \s+) AS splitLine#1300]
+         +- Relation[value#1297] text
+
+== Analyzed Logical Plan ==
+domain: string, pageName: string, viewCount: int, size: bigint
+Filter StartsWith(domain#1303, en)
++- Sort [viewCount#1305 ASC NULLS FIRST], true
+   +- Project [splitLine#1300[0] AS domain#1303, splitLine#1300[1] AS pageName#1304, cast(cast(splitLine#1300[2] as decimal(20,0)) as int) AS viewCount#1305, cast(cast(splitLine#1300[3] as decimal(20,0)) as bigint) AS size#1306L]
+      +- Project [split(value#1297, \s+) AS splitLine#1300]
+         +- Relation[value#1297] text
+
+== Optimized Logical Plan ==
+Sort [viewCount#1305 ASC NULLS FIRST], true
++- Project [split(value#1297, \s+)[0] AS domain#1303, split(value#1297, \s+)[1] AS pageName#1304, cast(cast(split(value#1297, \s+)[2] as decimal(20,0)) as int) AS viewCount#1305, cast(cast(split(value#1297, \s+)[3] as decimal(20,0)) as bigint) AS size#1306L]
+   +- Filter StartsWith(split(value#1297, \s+)[0], en)
+      +- Relation[value#1297] text
+
+== Physical Plan ==
+*Sort [viewCount#1305 ASC NULLS FIRST], true, 0
++- Exchange rangepartitioning(viewCount#1305 ASC NULLS FIRST, 200)
+   +- *Project [split(value#1297, \s+)[0] AS domain#1303, split(value#1297, \s+)[1] AS pageName#1304, cast(cast(split(value#1297, \s+)[2] as decimal(20,0)) as int) AS viewCount#1305, cast(cast(split(value#1297, \s+)[3] as decimal(20,0)) as bigint) AS size#1306L]
+      +- *Filter StartsWith(split(value#1297, \s+)[0], en)
+         +- *FileScan text [value#1297] ... struct<value:string>
+         
+
+***
+*** Work with DataSets and lambdas ***
+*** 
+
+Create a dataset with a case class as described in lab instructions.
+> case class WikiViews(domain:String, pageName:String, viewCount:Integer, size:Long)
+> val viewsDS = viewsWithSchemaDF.as[WikiViews]
+
+As before, order by viewCount, and filter after ordering - using a lambda.
+Note how the filter is the last thing that happens.  No push down for a lambda filter !!!
+> viewsDS.orderBy('viewCount).filter(view => view.domain.startsWith("en")).explain
+== Physical Plan ==
+*Filter <function1>.apply
++- *Sort [viewCount#1305 ASC NULLS FIRST], true, 0
+   +- Exchange rangepartitioning(viewCount#1305 ASC NULLS FIRST, 200)
+      +- *Project [split(value#1297, \s+)[0] AS domain#1303, split(value#1297, \s+)[1] AS pageName#1304, cast(cast(split(value#1297, \s+)[2] as decimal(20,0)) as int) AS viewCount#1305, cast(cast(split(value#1297, \s+)[3] as decimal(20,0)) as bigint) AS size#1306L]
+         +- *FileScan text [value#1297] ... struct<value:string>
